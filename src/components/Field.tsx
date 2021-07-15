@@ -1,10 +1,10 @@
+import { wrap, transfer } from 'comlink'
 import { useEffect, useRef, FC } from 'react'
 import styled from 'styled-components'
-import { Canvas } from '../utils/Canvas'
 import { Cell } from '../utils/Cell'
-import { FieldController } from '../utils/FieldController'
+import RenderControllerWorker, { RenderController as IRenderController } from '../workers/RenderController.worker'
 
-// (field size is up to 10^4 x 10^4, number of bombs 1 < k < 10^8 - 1)
+const renderController = wrap<IRenderController>(new RenderControllerWorker())
 
 const CanvasContainer = styled.canvas`
   margin: auto;
@@ -19,22 +19,51 @@ interface IFieldProps {
     totalMines: number
 }
 
+let scrollPosition = {
+    x: 0,
+    y: 0
+}
+let ticking = false
+
+function doSomething(scroll_pos: { x:number, y:number }) {
+    renderController.renderField(scroll_pos)
+}
+
+window.addEventListener('scroll', function(e) {
+    scrollPosition.x = window.scrollX;
+    scrollPosition.y = window.scrollY;
+
+    if (!ticking) {
+        window.requestAnimationFrame(function() {
+            doSomething(scrollPosition);
+            ticking = false;
+        });
+
+        ticking = true;
+    }
+});
+
 export const Field:FC<IFieldProps> = (props) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
-    useEffect(() => {
+    const initField = async () => {
         if (canvasRef.current !== null) {
-            const field = new FieldController(
-                new Canvas(canvasRef.current),
+            const offscreen = canvasRef.current.transferControlToOffscreen()
+            await renderController.initCanvas(
+                transfer(offscreen, [offscreen]),
                 props.size,
-                props.totalMines,
+                Cell.Size,
+                {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                },
             )
-
-            field.placeCells()
-            field.initListener()
-            field.placeMines()
+            await renderController.renderField({ x: 0, y:0 })
         }
+    }
 
+    useEffect(() => {
+        initField()
     }, [canvasRef.current])
 
     const canvasSize = {

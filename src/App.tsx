@@ -12,7 +12,7 @@ const AppContainer = styled.div`
 function App() {
   return (
     <AppContainer>
-      <Field size={{width: 20, height: 20}} totalMines={1}/>
+      <Field size={{width: 800, height: 800}} totalMines={1}/>
     </AppContainer>
   );
 }

@@ -2,17 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ef7671df-17f4-4894-95ac-f720ef826324" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/react-app-rewired.config.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/Field.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/utils/Canvas.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/utils/Cell.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/utils/FieldController.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/workers/Field.worker.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/workers/RenderController.worker.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Field.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Field.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/FieldController.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/FieldController.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,8 +16,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript File" />
         <option value="JavaScript File" />
+        <option value="TypeScript File" />
       </list>
     </option>
   </component>
@@ -66,6 +60,7 @@
       <workItem from="1625971863763" duration="134000" />
       <workItem from="1625972085249" duration="13759000" />
       <workItem from="1626057289362" duration="7266000" />
+      <workItem from="1626313072292" duration="7834000" />
     </task>
     <task id="LOCAL-00001" summary="env: initial commit">
       <created>1625973122646</created>
