@@ -1,15 +1,8 @@
-import { wrap, transfer } from 'comlink'
-import { useEffect, useRef, FC } from 'react'
-import styled from 'styled-components'
+import { wrap, transfer, proxy} from 'comlink'
+import { useEffect, useRef, FC, useCallback } from 'react'
 import { Cell } from '../utils/Cell'
+import { LayerController } from '../utils/LayerController'
 import RenderControllerWorker, { RenderController as IRenderController } from '../workers/RenderController.worker'
-
-const renderController = wrap<IRenderController>(new RenderControllerWorker())
-
-const CanvasContainer = styled.canvas`
-  margin: auto;
-  border: 1px solid black;
-`
 
 interface IFieldProps {
     size: {
@@ -19,59 +12,72 @@ interface IFieldProps {
     totalMines: number
 }
 
-let scrollPosition = {
-    x: 0,
-    y: 0
-}
-let ticking = false
+const renderController = wrap<IRenderController>(new RenderControllerWorker())
 
-function doSomething(scroll_pos: { x:number, y:number }) {
-    renderController.renderField(scroll_pos)
-}
-
-window.addEventListener('scroll', function(e) {
-    scrollPosition.x = window.scrollX;
-    scrollPosition.y = window.scrollY;
-
-    if (!ticking) {
-        window.requestAnimationFrame(function() {
-            doSomething(scrollPosition);
-            ticking = false;
-        });
-
-        ticking = true;
-    }
-});
+let frameId:number|null = null
 
 export const Field:FC<IFieldProps> = (props) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null)
+    const rootRef = useRef<HTMLDivElement>(null)
+    const layerController = useRef<LayerController>(null)
 
-    const initField = async () => {
-        if (canvasRef.current !== null) {
-            const offscreen = canvasRef.current.transferControlToOffscreen()
-            await renderController.initCanvas(
-                transfer(offscreen, [offscreen]),
+    const initRenderController = useCallback(async () => {
+        if (rootRef.current) {
+            const layerSize = {
+                width: window.innerWidth,
+                height: window.innerHeight,
+            }
+
+            // @ts-ignore
+            layerController.current = new LayerController(
+                rootRef.current,
+                {
+                    width: props.size.width * Cell.Size,
+                    height: props.size.height * Cell.Size
+                },
+                layerSize,
+            )
+
+            return await renderController.init(
                 props.size,
                 Cell.Size,
-                {
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                },
+                layerSize,
+                proxy((x, y) => {
+                    const canvas = layerController.current?.getLayer(x, y)?.transferControlToOffscreen()
+
+                    if (canvas) {
+                        return transfer(canvas, [canvas])
+                    }
+                })
             )
-            await renderController.renderField({ x: 0, y:0 })
         }
-    }
+    }, [rootRef, layerController])
 
     useEffect(() => {
-        initField()
-    }, [canvasRef.current])
+        initRenderController().then(() => {
+            window.addEventListener('scroll', () => {
+                if (!frameId) {
+                    frameId = window.requestAnimationFrame(() => {
+                        renderController
+                            .render({ x: window.scrollX, y: window.scrollY })
+                            .then(() => {
+                                frameId = null;
+                            });
 
-    const canvasSize = {
-        width: props.size.width * Cell.Size,
-        height: props.size.height * Cell.Size
-    }
+                    });
+                }
+            });
+        })
+    }, [rootRef.current])
+
+    useEffect(() => {
+        window.scrollTo(0, 0)
+    },[])
+
 
     return (
-        <CanvasContainer ref={canvasRef} style={canvasSize} width={canvasSize.width} height={canvasSize.height}/>
+        <div
+            ref={rootRef}
+            style={{ width: props.size.width * Cell.Size, height: props.size.height * Cell.Size, position: 'relative' }}
+        />
     )
 }

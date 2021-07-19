@@ -18,85 +18,149 @@ type CanvasStyle = {
     cellSize?:number
 }
 
-export class RenderController {
-    public initCanvas(canvas:OffscreenCanvas, canvasSize:Size, cellSize:number, viewPortSize:Size):void {
-        this.style.cellSize = cellSize
-        this.canvas = canvas
-        this.canvasContext = this.canvas.getContext('2d')
-        this.canvasSize = canvasSize
-        this.viewPortSize = viewPortSize
+type LayerGetter = (x:number, y:number) => OffscreenCanvas | undefined
 
-        if (this.canvasContext) {
-            this.canvasContext.fillStyle = this.style.backgroundColor
-            this.canvasContext.strokeStyle = this.style.borderColor
-        }
+function getScrollDirection (nextScroll: Position, prevScroll?:Position): 'TOP' | 'LEFT' | 'BOTTOM' | 'RIGHT' | null {
+    if (!prevScroll) {
+        return null
     }
 
-    public renderField(scrollPosition:Position):void {
-        const context = this.canvas?.getContext('2d')
+    if (nextScroll.x - prevScroll.x > 0) {
+        return 'RIGHT'
+    } else if (nextScroll.x - prevScroll.x < 0) {
+        return 'LEFT'
+    } else if (nextScroll.y - prevScroll.y > 0) {
+        return 'BOTTOM'
+    } else if (nextScroll.y - prevScroll.y < 0) {
+        return 'TOP'
+    }
 
-        if (context && this.canvasSize && this.style.cellSize) {
-            context.fillStyle = this.style.backgroundColor
-            context.strokeStyle = this.style.borderColor
+    return null
+}
 
-            const topLeftVisibleCellIndices = {
-                x: Math.floor(scrollPosition.x / this.style.cellSize),
-                y: Math.floor(scrollPosition.y / this.style.cellSize),
+export class RenderController {
+    public init(fieldSize:Size, cellSize:number, layerSize:Size, layerGetter: LayerGetter):Promise<void> {
+        this.style.cellSize = cellSize
+        this.fieldSize = fieldSize
+        this.layerSize = layerSize
+        this.layerGetter = layerGetter
+
+        this.maxVisibleCells = {
+            x: Math.ceil(this.layerSize.width / this.style.cellSize),
+            y: Math.ceil(this.layerSize.height / this.style.cellSize),
+        }
+
+        this.maxVisibleLayers = {
+            x: Math.ceil((fieldSize.width * cellSize) / layerSize.width),
+            y: Math.ceil((fieldSize.height * cellSize) / layerSize.height),
+        }
+
+        return this.render({ x: 0, y: 0 })
+    }
+
+    public async render(scrollPosition:Position) {
+        if (this.fieldSize && this.style.cellSize) {
+
+            const layerIndices = {
+                x: Math.floor(scrollPosition.x / this.layerSize.width),
+                y: Math.floor(scrollPosition.y / this.layerSize.height),
             }
 
-            const maxVisibleCells = {
-                x: Math.ceil(this.viewPortSize.width / this.style.cellSize),
-                y: Math.ceil(this.viewPortSize.height / this.style.cellSize),
+            const direction = getScrollDirection(scrollPosition, this.lasScrollPosition)
+
+            if (direction === 'RIGHT' && layerIndices.x + 1 < this.maxVisibleLayers.x ) {
+                layerIndices.x = layerIndices.x + 1
             }
 
-            // Layer is a collection of cells.
-            const renderLayerIndices = {
-                x: Math.floor(topLeftVisibleCellIndices.x / maxVisibleCells.x),
-                y: Math.floor(topLeftVisibleCellIndices.y / maxVisibleCells.y),
+            if (direction === 'LEFT' && layerIndices.x - 1 > 0) {
+                layerIndices.x = layerIndices.x - 1
             }
 
-            const xMin = renderLayerIndices.x * maxVisibleCells.x
-            const xMax = xMin + maxVisibleCells.x * 2
-            const yMin = renderLayerIndices.y * maxVisibleCells.y
-            const yMax = yMin + maxVisibleCells.y * 2
+            if (direction === 'TOP' && layerIndices.y - 1 > 0) {
+                layerIndices.y = layerIndices.y - 1
+            }
+
+            if (direction === 'BOTTOM' && layerIndices.y + 1 < this.maxVisibleLayers.y) {
+                layerIndices.y = layerIndices.y + 1
+            }
 
             requestAnimationFrame(() => {
-                this.renderPartial(xMin, xMax, yMin, yMax)
+                this.renderLayer(layerIndices)
+
+                this.lasScrollPosition = scrollPosition
             })
         }
     }
 
-    private renderPartial(xMin:number, xMax:number, yMin:number, yMax:number):void {
-        const context = this.canvas?.getContext('2d')
+    private async renderLayer(layerIndices: Position) {
+        const layer = await this.getLayer(layerIndices.x, layerIndices.y)
 
-        if (context && this.canvasSize && this.style.cellSize) {
-            const maxY = yMax * this.style.cellSize
-            const maxX = xMax * this.style.cellSize
-
-            for (let i = xMin; i < xMax; i ++) {
-                this.canvasContext?.beginPath()
-                this.canvasContext?.moveTo(i * this.style?.cellSize, 0)
-                this.canvasContext?.lineTo(i * this.style?.cellSize, maxY);
-                this.canvasContext?.stroke();
-            }
-
-            for (let i = yMin; i < yMax; i++) {
-                this.canvasContext?.beginPath()
-                this.canvasContext?.moveTo(0, i * this.style?.cellSize)
-                this.canvasContext?.lineTo(maxX, i * this.style?.cellSize)
-                this.canvasContext?.stroke();
-            }
+        if (!layer) {
+            return
         }
+
+        const context = layer.getContext('2d')
+
+        if (!context) {
+            return
+        }
+
+        // TODO: implement layer render logic
+        context.fillStyle = "blue"
+        context.fillRect(0, 0, layer.width, layer.height);
+
+        // const horizontalCellsCount = this.maxVisibleCells.x
+        // const verticalCellsCount = this.maxVisibleCells.y
+        //
+        // if (this.style.cellSize) {
+        //     const maxX = horizontalCellsCount * this.style.cellSize
+        //     const maxY = verticalCellsCount * this.style.cellSize
+        //
+        //     for (let i = 0; i < horizontalCellsCount; i ++) {
+        //         context?.beginPath()
+        //         context?.moveTo(i * this.style?.cellSize, 0)
+        //         context?.lineTo(i * this.style?.cellSize, maxY);
+        //         context?.stroke();
+        //     }
+        //
+        //     for (let i = 0; i < verticalCellsCount; i++) {
+        //         context?.beginPath()
+        //         context?.moveTo(0, i * this.style?.cellSize)
+        //         context?.lineTo(maxX, i * this.style?.cellSize)
+        //         context?.stroke();
+        //     }
+        // }
     }
 
-    private canvas: OffscreenCanvas|null = null
+    private async getLayer(x: number, y: number) {
+        const cacheKey = `${x}${y}`
+
+        if (this.layerCache.has(cacheKey)) {
+            return this.layerCache.get(cacheKey)
+        }
+
+        if (this.layerGetter) {
+            const canvas = await this.layerGetter(x, y)
+            this.layerCache.set(cacheKey, canvas)
+
+            return canvas
+        }
+
+        return null
+    }
+
     private style: CanvasStyle = {
-        backgroundColor: '#9D6A5F',
+        backgroundColor: 'black',
         borderColor: 'black'
     }
-    private canvasSize: Size|null = null
-    private canvasContext: OffscreenCanvasRenderingContext2D|null = null
-    private viewPortSize: Size = { width: 0, height: 0 }
+    private fieldSize: Size|null = null
+    private layerSize: Size = { width: 0, height: 0 }
+    private maxVisibleCells: Position = { x: 0, y: 0 }
+    private maxVisibleLayers: Position = { x: 0, y: 0 }
+    private layerGetter: LayerGetter | null = null
+    private layerCache: Map<string, OffscreenCanvas|undefined> = new Map<string, OffscreenCanvas|undefined>()
+    private lasScrollPosition: Position | undefined
 }
+
 
 expose(new RenderController());

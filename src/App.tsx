@@ -1,6 +1,13 @@
 import React from 'react';
 import styled from 'styled-components'
 import { Field } from './components/Field'
+import { createGlobalStyle } from 'styled-components'
+
+const GlobalStyle = createGlobalStyle`
+  body {
+    margin: 0;
+  }
+`
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -10,11 +17,12 @@ const AppContainer = styled.div`
 `
 
 function App() {
-  return (
-    <AppContainer>
-      <Field size={{width: 800, height: 800}} totalMines={1}/>
-    </AppContainer>
-  );
+    return (
+        <AppContainer>
+            <GlobalStyle/>
+            <Field size={{width: 10000, height: 10000}} totalMines={1}/>
+        </AppContainer>
+    );
 }
 
 export default App;
