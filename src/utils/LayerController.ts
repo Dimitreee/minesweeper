@@ -9,19 +9,27 @@ export class LayerController {
 
     public getLayer(x: number, y: number) {
         const level = this.layers.get(x)
+        const layerOffset = {
+            x: x * this.layerSize.width,
+            y: y * this.layerSize.height,
+        }
+
+        if (layerOffset.x > this.fieldSize.width || layerOffset.y > this.fieldSize.width) {
+            return null
+        }
 
         if (level) {
             if (level.has(y)) {
                 return level.get(y)
             } else {
-                const layer = this.createLayer(x * this.layerSize.width, y * this.layerSize.height)
+                const layer = this.createLayer(layerOffset.x, layerOffset.y)
                 level.set(y, layer)
 
                 return layer
             }
         } else {
             const newLayerLevel = new Map()
-            const layer = this.createLayer(x * this.layerSize.width, y * this.layerSize.height)
+            const layer = this.createLayer(layerOffset.x, layerOffset.y)
             newLayerLevel.set(y, layer)
 
             this.layers.set(x, newLayerLevel)
@@ -32,6 +40,7 @@ export class LayerController {
 
     private createLayer(offsetX: number, offsetY: number) {
         const canvas = document.createElement('canvas')
+
         canvas.style.position = `absolute`
         canvas.style.top = `${offsetY}px`
         canvas.style.left = `${offsetX}px`

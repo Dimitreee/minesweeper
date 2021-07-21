@@ -20,9 +20,20 @@ export const Field:FC<IFieldProps> = (props) => {
     const rootRef = useRef<HTMLDivElement>(null)
     const layerController = useRef<LayerController>(null)
 
-    const initRenderController = useCallback(async () => {
+    const initLayerController = useCallback(async () => {
         if (rootRef.current) {
             const layerSize = {
+                /*
+                *
+                * feel free to configure <3
+                * i'll recommend to use values multiple of Cell.Size
+                *
+                * */
+                width: 20 * Cell.Size,
+                height: 20 * Cell.Size,
+            }
+
+            const viewPortSize = {
                 width: window.innerWidth,
                 height: window.innerHeight,
             }
@@ -47,22 +58,22 @@ export const Field:FC<IFieldProps> = (props) => {
                     if (canvas) {
                         return transfer(canvas, [canvas])
                     }
-                })
+                }),
+                viewPortSize,
             )
         }
     }, [rootRef, layerController])
 
     useEffect(() => {
-        initRenderController().then(() => {
+        initLayerController().then(() => {
             window.addEventListener('scroll', () => {
                 if (!frameId) {
-                    frameId = window.requestAnimationFrame(() => {
+                    frameId = requestAnimationFrame(() => {
                         renderController
                             .render({ x: window.scrollX, y: window.scrollY })
                             .then(() => {
                                 frameId = null;
                             });
-
                     });
                 }
             });
@@ -73,11 +84,14 @@ export const Field:FC<IFieldProps> = (props) => {
         window.scrollTo(0, 0)
     },[])
 
-
     return (
         <div
             ref={rootRef}
-            style={{ width: props.size.width * Cell.Size, height: props.size.height * Cell.Size, position: 'relative' }}
+            style={{
+                width: props.size.width * Cell.Size,
+                height: props.size.height * Cell.Size,
+                position: 'relative',
+            }}
         />
     )
 }

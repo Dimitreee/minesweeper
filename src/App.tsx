@@ -7,6 +7,17 @@ const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
   }
+  
+  @keyframes expand {
+    from {
+      opacity: 0;
+      background: #5470B0;
+    }
+  }
+
+  canvas {
+    animation: expand .01s linear;
+  }
 `
 
 const AppContainer = styled.div`
