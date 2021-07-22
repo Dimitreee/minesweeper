@@ -1,4 +1,4 @@
-import { expose } from 'comlink';
+import { expose } from 'comlink'
 
 export default {} as typeof Worker & { new (): Worker };
 
@@ -21,16 +21,17 @@ type CanvasStyle = {
 type LayerGetter = (x:number, y:number) => OffscreenCanvas | undefined
 
 export class RenderController {
-    public init(fieldSize:Size, cellSize:number, layerSize:Size, layerGetter: LayerGetter, viewPortSize:Size):Promise<void> {
-        this.style.cellSize = cellSize
+    public init(fieldSize:Size, cellSize:number, layerSize:Size, layerGetter: LayerGetter, viewPortSize:Size, getLayerBuffer: (layerIndices: Position) => void):Promise<void> {
+        this.fieldStyle.cellSize = cellSize
         this.fieldSize = fieldSize
         this.layerSize = layerSize
         this.layerGetter = layerGetter
         this.viewPortSize = viewPortSize
+        this.getLayerBuffer = getLayerBuffer
 
         this.maxVisibleCells = {
-            x: Math.ceil(this.layerSize.width / this.style.cellSize),
-            y: Math.ceil(this.layerSize.height / this.style.cellSize),
+            x: Math.ceil(this.layerSize.width / this.fieldStyle.cellSize),
+            y: Math.ceil(this.layerSize.height / this.fieldStyle.cellSize),
         }
 
         this.maxVisibleLayers = {
@@ -42,7 +43,7 @@ export class RenderController {
     }
 
     public async render(scrollPosition:Position) {
-        if (this.fieldSize && this.style.cellSize) {
+        if (this.fieldSize && this.fieldStyle.cellSize) {
 
             this.getVisibleLayers(scrollPosition).forEach((layerIndices) => {
                 requestAnimationFrame(() => {
@@ -54,8 +55,39 @@ export class RenderController {
         }
     }
 
-    private async renderLayer(layerIndices: Position) {
-        const layer = await this.getLayer(layerIndices.x, layerIndices.y)
+    public async renderCell(cursorPosition:Position) {
+        if (this.fieldStyle.cellSize) {
+            const layerIndices = this.getLayerIndices(cursorPosition)
+            const layer = await this.getLayerFromCache(layerIndices)
+            const layerRelativeCords = this.convertCordsToRelative(cursorPosition, layerIndices)
+            const cellIndices = {
+                x: Math.floor(layerRelativeCords.x / this.fieldStyle.cellSize),
+                y: Math.floor(layerRelativeCords.y / this.fieldStyle.cellSize),
+            }
+
+            if (layer) {
+                const context = layer.getContext('2d')
+
+                if (context) {
+                    const x = cellIndices.x * this.fieldStyle.cellSize
+                    const y = cellIndices.y * this.fieldStyle.cellSize
+
+                    if (this.getLayerBuffer) {
+                        let buffer = await this.getLayerBuffer(layerIndices)
+                        console.log(buffer)
+                    }
+
+                    context.fillStyle = this.cellStyle.backgroundColor
+                    context.fillRect(x, y, this.fieldStyle.cellSize, this.fieldStyle.cellSize)
+                    context.strokeStyle = this.cellStyle.borderColor
+                    context.strokeRect(x, y, this.fieldStyle.cellSize, this.fieldStyle.cellSize)
+                }
+            }
+        }
+    }
+
+    private async renderLayer(layerIndices:Position) {
+        const layer = await this.getLayer(layerIndices)
 
         if (!layer) {
             return
@@ -67,15 +99,52 @@ export class RenderController {
             return
         }
 
-        const layerSnapshot = this.getLayerSnapshot(layer)
+        context.fillStyle = this.fieldStyle.backgroundColor
+        context.fillRect(0, 0, layer.width, layer.height);
+        context.strokeStyle = this.fieldStyle.borderColor
+        context.strokeRect(0, 0, layer.width, layer.height);
+        context.lineWidth = 1
 
-        if (layerSnapshot) {
-            context.drawImage(layerSnapshot, 0, 0)
+        for (let x = 0; x < this.maxVisibleCells.x ; x++) {
+            const targetX = x * this.fieldStyle.cellSize!
+
+            context.beginPath()
+            context.moveTo(targetX, 0)
+            context.lineTo(targetX, layer.height)
+            context.stroke()
+        }
+
+        for (let y = 0; y < this.maxVisibleCells.y; y++) {
+            const targetY = y * this.fieldStyle.cellSize!
+
+            context.beginPath()
+            context.moveTo(0, y * this.fieldStyle.cellSize!)
+            context.lineTo(layer.width, targetY)
+            context.stroke()
         }
         // TODO: implement layer render logic
     }
 
-    private async getLayer(x: number, y: number) {
+    private async getLayerFromCache(indices:Position) {
+        const { x, y } = indices
+        const cacheKey = `${x}${y}`
+
+        if (this.layerCache.has(cacheKey)) {
+            return this.layerCache.get(cacheKey)
+        } else {
+            if (this.layerGetter) {
+                const canvas = await this.layerGetter(x, y)
+                this.layerCache.set(cacheKey, canvas)
+
+                return canvas
+            }
+        }
+
+        return null
+    }
+
+    private async getLayer(indices:Position) {
+        const { x, y } = indices
         const cacheKey = `${x}${y}`
 
         // TODO: think about simplier solution
@@ -91,53 +160,11 @@ export class RenderController {
         return null
     }
 
-    private getLayerSnapshot(layer: OffscreenCanvas): OffscreenCanvas | undefined {
-        // TODO: think about solution
-        if (!this.layerSnapshot) {
-            const context = layer.getContext('2d')
-
-            if (!context) {
-                return undefined
-            }
-
-            context.fillStyle = this.style.backgroundColor
-            context.fillRect(0, 0, layer.width, layer.height);
-            context.strokeStyle = this.style.borderColor
-            context.strokeRect(0, 0, layer.width, layer.height);
-            context.lineWidth = 1
-
-            for (let x = 0; x < this.maxVisibleCells.x ; x++) {
-                const targetX = x * this.style.cellSize!
-
-                context.beginPath()
-                context.moveTo(targetX, 0)
-                context.lineTo(targetX, layer.height)
-                context.stroke()
-            }
-
-            for (let y = 0; y < this.maxVisibleCells.y; y++) {
-                const targetY = y * this.style.cellSize!
-
-                context.beginPath()
-                context.moveTo(0, y * this.style.cellSize!)
-                context.lineTo(layer.width, targetY)
-                context.stroke()
-            }
-
-            this.layerSnapshot = layer
-        }
-
-        return this.layerSnapshot
-    }
-
-    private getVisibleLayers(screenPosition: Position): Array<Position> {
+    private getVisibleLayers(screenPosition:Position): Array<Position> {
         const visibleLayers = []
 
         if (this.viewPortSize) {
-            const firstVisibleLayer = {
-                x: Math.floor(screenPosition.x / this.layerSize.width),
-                y: Math.floor(screenPosition.y / this.layerSize.height)
-            }
+            const firstVisibleLayer = this.getLayerIndices(screenPosition)
 
             /*
             *
@@ -166,9 +193,27 @@ export class RenderController {
         return visibleLayers
     }
 
-    private style: CanvasStyle = {
+    private getLayerIndices(screenBasedCoordinates:Position): Position {
+        return {
+            x: Math.floor(screenBasedCoordinates.x / this.layerSize.width),
+            y: Math.floor(screenBasedCoordinates.y / this.layerSize.height),
+        }
+    }
+
+    private convertCordsToRelative(coordinates:Position, layerIndices:Position): Position {
+        return {
+            x: coordinates.x - layerIndices.x * this.layerSize.width,
+            y: coordinates.y - layerIndices.y * this.layerSize.height,
+        }
+    }
+
+    private fieldStyle: CanvasStyle = {
         backgroundColor: 'grey',
-        borderColor: 'black'
+        borderColor: 'black',
+    }
+    private cellStyle: CanvasStyle = {
+        backgroundColor: 'white',
+        borderColor: 'grey',
     }
     private fieldSize: Size|null = null
     private layerSize: Size = { width: 0, height: 0 }
@@ -178,7 +223,9 @@ export class RenderController {
     private layerCache: Map<string, OffscreenCanvas|undefined> = new Map<string, OffscreenCanvas|undefined>()
     private lasScrollPosition: Position | undefined
     private viewPortSize: Size | undefined
-    private layerSnapshot: OffscreenCanvas | undefined;
+    private getLayerBuffer: ((layerIndices: Position) => void) | undefined
 }
 
-expose(new RenderController());
+const renderController = new RenderController()
+
+expose(renderController);

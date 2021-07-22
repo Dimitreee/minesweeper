@@ -8,7 +8,6 @@ export class LayerController {
     }
 
     public getLayer(x: number, y: number) {
-        const level = this.layers.get(x)
         const layerOffset = {
             x: x * this.layerSize.width,
             y: y * this.layerSize.height,
@@ -17,6 +16,7 @@ export class LayerController {
         if (layerOffset.x > this.fieldSize.width || layerOffset.y > this.fieldSize.width) {
             return null
         }
+        const level = this.layers.get(x)
 
         if (level) {
             if (level.has(y)) {

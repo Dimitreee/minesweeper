@@ -1,7 +1,6 @@
 import { wrap } from 'comlink'
 import { Canvas } from './Canvas'
 import { Cell } from './Cell'
-import FieldWorker from '../workers/Field.worker'
 
 export const generateCellHash = (x: number, y: number) => {
     return `${x - ( x % Cell.Size )}${y - ( y % Cell.Size)}`
