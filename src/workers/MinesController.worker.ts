@@ -31,30 +31,55 @@ export class MinesController {
         this.minesBuffer = new ArrayBuffer(this.maxVisibleLayers.x * this.maxVisibleLayers.y * this.maxVisibleCells.x * this.maxVisibleCells.y)
     }
 
-    public getLayerBuffer(layerIndices:Position) {
+    public updateLayerState(layerIndices: Position, cellIndices: Position) {
+        const cacheKey = `${layerIndices.x}${layerIndices.y}`
+
+        if (!this.layerStateCache.has(cacheKey)) {
+            this.placeMines(layerIndices)
+        }
+    }
+
+    public getLayerState(layerIndices: Position) {
+        const { x, y } = layerIndices
+        const cacheKey = `${x}${y}`
+
+        if (this.layerStateCache.has(cacheKey)) {
+            return this.layerStateCache.get(cacheKey)
+        }
+
         if (this.maxVisibleLayers && this.maxVisibleCells && this.minesBuffer) {
-            const { x, y } = layerIndices
             const bitesPerLayer = this.maxVisibleCells?.x * this.maxVisibleCells?.y
             const layerBufferFirstBite = (x + y * this.maxVisibleLayers?.x) * bitesPerLayer
-
             const layerState = new Uint8Array(this.minesBuffer, layerBufferFirstBite, bitesPerLayer)
 
-            let i = 0
-
-            while (this.totalMines! > 0 && i < layerState.byteLength) {
-                if (this.totalMines) {
-                    if (Math.random() > 0.5) {
-                        layerState[i] = 1
-                        this.totalMines -= 1
-                    }
-
-                    i++
-                }
+            for (let i = 0; i < layerState.length; i++) {
+                void(0)
             }
+
+            this.layerStateCache.set(cacheKey, layerState)
 
             return layerState
         }
     }
+
+    private placeMines(layerIndices: Position) {
+        const layerState = this.getLayerState(layerIndices)
+
+        if (layerState) {
+            let i = 0
+
+            while (this.totalMines! > 0 && i < layerState.byteLength) {
+                if (this.totalMines) {
+                    if (Math.random() > 0.9) {
+                        layerState[i] = 1
+                        this.totalMines -= 1
+                    }
+                    i++
+                }
+            }
+        }
+    }
+
 
     private minesBuffer: ArrayBuffer | null = null
     private cellSize: number | null = null
@@ -62,6 +87,7 @@ export class MinesController {
     private maxVisibleCells: Position | null = null
     private maxVisibleLayers: Position | null = null
     private totalMines: number | null = null
+    private layerStateCache: Map<string, Uint8Array> = new Map()
 }
 
 const minesController = new MinesController()

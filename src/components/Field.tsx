@@ -1,10 +1,9 @@
-import { wrap, transfer, proxy} from 'comlink'
-import { totalmem } from 'os'
+import { transfer, proxy} from 'comlink'
 import { useEffect, useRef, FC, useCallback } from 'react'
 import { Cell } from '../utils/Cell'
 import { LayerController } from '../utils/LayerController'
-import RenderControllerWorker, { RenderController as IRenderController } from '../workers/RenderController.worker'
-import MinesController, { MinesController as IMinesController } from '../workers/MinesController.worker'
+
+import { renderController, minesController } from '../workers'
 
 interface IFieldProps {
     size: {
@@ -13,9 +12,6 @@ interface IFieldProps {
     },
     totalMines: number
 }
-
-const renderController = wrap<IRenderController>(new RenderControllerWorker())
-const minesController = wrap<IMinesController>(new MinesController())
 
 let frameId:number|null = null
 
@@ -29,8 +25,8 @@ export const Field:FC<IFieldProps> = (props) => {
         * i'll recommend to use values multiple of Cell.Size
         *
         * */
-        width: 40 * Cell.Size,
-        height: 40 * Cell.Size,
+        width: 20 * Cell.Size,
+        height: 20 * Cell.Size,
     }
 
     const initLayerController = useCallback(async () => {
@@ -48,6 +44,7 @@ export const Field:FC<IFieldProps> = (props) => {
                     height: props.size.height * Cell.Size
                 },
                 layerSize,
+                Cell.Size,
             )
 
             return await renderController.init(
@@ -55,7 +52,7 @@ export const Field:FC<IFieldProps> = (props) => {
                 Cell.Size,
                 layerSize,
                 proxy((x, y) => {
-                    const canvas = layerController.current?.getLayer(x, y)
+                    const canvas = layerController.current?.getLayerByIndices(x, y)
                     const transferredCanvas = canvas?.transferControlToOffscreen()
 
                     if (transferredCanvas) {
@@ -63,20 +60,28 @@ export const Field:FC<IFieldProps> = (props) => {
                     }
                 }),
                 viewPortSize,
-                proxy((position) => {
-                    minesController.getLayerBuffer(position)
-                })
             )
         }
     }, [rootRef, layerController])
 
     const handleClick = useCallback(async (e) => {
-        const x = e.clientX + window.scrollX
-        const y = e.clientY + window.scrollY
+        if (layerController.current) {
+            const cursorCords = {
+                x: e.clientX + window.scrollX,
+                y: e.clientY + window.scrollY,
+            }
 
-        await renderController.renderCell({ x, y })
+            const cellIndices = layerController.current.getCellIndices(cursorCords)
+            const layerIndices = layerController.current.getLayerIndices(cursorCords)
+
+            await minesController.updateLayerState(layerIndices, cellIndices)
+            const layerState = await minesController.getLayerState(layerIndices)
+
+            if (layerState) {
+                await renderController.updateLayer(layerIndices, layerState, cellIndices)
+            }
+        }
     }, [])
-
 
     useEffect(() => {
         initLayerController().then(() => {

@@ -31,7 +31,7 @@ function App() {
     return (
         <AppContainer>
             <GlobalStyle/>
-            <Field size={{width: 10000, height: 10000}} totalMines={3000}/>
+            <Field size={{width: 20, height: 20}} totalMines={100}/>
         </AppContainer>
     );
 }

@@ -21,13 +21,12 @@ type CanvasStyle = {
 type LayerGetter = (x:number, y:number) => OffscreenCanvas | undefined
 
 export class RenderController {
-    public init(fieldSize:Size, cellSize:number, layerSize:Size, layerGetter: LayerGetter, viewPortSize:Size, getLayerBuffer: (layerIndices: Position) => void):Promise<void> {
+    public init(fieldSize:Size, cellSize:number, layerSize:Size, layerGetter: LayerGetter, viewPortSize:Size):Promise<void> {
         this.fieldStyle.cellSize = cellSize
         this.fieldSize = fieldSize
         this.layerSize = layerSize
         this.layerGetter = layerGetter
         this.viewPortSize = viewPortSize
-        this.getLayerBuffer = getLayerBuffer
 
         this.maxVisibleCells = {
             x: Math.ceil(this.layerSize.width / this.fieldStyle.cellSize),
@@ -55,44 +54,104 @@ export class RenderController {
         }
     }
 
-    public async renderCell(cursorPosition:Position) {
+    public async renderCell(layer: OffscreenCanvas, cellIndices: Position, cellState: undefined | number) {
         if (this.fieldStyle.cellSize) {
-            const layerIndices = this.getLayerIndices(cursorPosition)
-            const layer = await this.getLayerFromCache(layerIndices)
-            const layerRelativeCords = this.convertCordsToRelative(cursorPosition, layerIndices)
-            const cellIndices = {
-                x: Math.floor(layerRelativeCords.x / this.fieldStyle.cellSize),
-                y: Math.floor(layerRelativeCords.y / this.fieldStyle.cellSize),
-            }
+            const context = layer.getContext('2d')
 
-            if (layer) {
-                const context = layer.getContext('2d')
+            if (context && typeof cellState !== 'undefined') {
+                const x = cellIndices.x * this.fieldStyle.cellSize
+                const y = cellIndices.y * this.fieldStyle.cellSize
 
-                if (context) {
-                    const x = cellIndices.x * this.fieldStyle.cellSize
-                    const y = cellIndices.y * this.fieldStyle.cellSize
+                context.strokeStyle = this.cellStyle.borderColor
 
-                    if (this.getLayerBuffer) {
-                        let buffer = await this.getLayerBuffer(layerIndices)
-                        console.log(buffer)
-                    }
-
+                if (cellState === 3) {
                     context.fillStyle = this.cellStyle.backgroundColor
-                    context.fillRect(x, y, this.fieldStyle.cellSize, this.fieldStyle.cellSize)
-                    context.strokeStyle = this.cellStyle.borderColor
-                    context.strokeRect(x, y, this.fieldStyle.cellSize, this.fieldStyle.cellSize)
+                } else if (cellState === 1) {
+                    context.fillStyle = 'red'
+                }
+
+                context.fillRect(x, y, this.fieldStyle.cellSize, this.fieldStyle.cellSize)
+                context.strokeRect(x, y, this.fieldStyle.cellSize, this.fieldStyle.cellSize)
+            }
+        }
+    }
+
+    public async renderLayer(layerIndices:Position, layerState?: Uint8Array) {
+        const layer = await this.getLayer(layerIndices)
+
+        if (layer) {
+            this.placeLayerGrid(layer)
+        }
+    }
+
+    public async updateLayer(layerIndices:Position, layerState: Uint8Array, cellIndices: Position) {
+        const layer = await this.getLayerFromCache(layerIndices)
+
+        const getBiteAtCellForRender = (x: number, y: number) => {
+            let biteIndex = y * this.maxVisibleCells.y + x
+            layerState[biteIndex] = 3
+
+            return layerState[biteIndex]
+        }
+
+        const getBiteAtCell = (x: number, y: number) => {
+            let biteIndex = y * this.maxVisibleCells.y + x
+            return layerState[biteIndex]
+        }
+
+        if (layer) {
+            const {x, y} = cellIndices
+            const height = this.maxVisibleCells.y
+            const empty = 0
+            const queuex = [x]
+            const queuey = [y]
+            let curry, currx
+            let minx = x
+            let miny = y
+            let maxx = x
+            let maxy = y
+            let north
+            let south
+            let n
+
+            while (queuey.length) {
+                currx = queuex.pop() as number
+                curry = queuey.pop() as number
+                minx = currx! < minx ? currx : minx
+                maxx = currx! > maxx ? currx : maxx
+
+                if (getBiteAtCell(currx, curry) === empty) {
+                    north = south = curry
+
+                    do {
+                        north -= 1
+                    } while (getBiteAtCell(currx, north) === empty && north >= 0)
+
+                    do {
+                        south += 1
+                    } while (getBiteAtCell(currx, south) === empty && south < height)
+
+                    miny = north + 1 < miny ? north + 1 : miny
+                    maxy = south - 1 > maxy ? south - 1 : maxy
+
+                    for (n = north + 1; n < south; n += 1) {
+                        await this.renderCell(layer, {x: currx, y: n}, getBiteAtCellForRender(currx, n))
+
+                        if (getBiteAtCell(currx - 1, n) === empty) {
+                            queuex.push(currx - 1)
+                            queuey.push(n)
+                        }
+                        if (getBiteAtCell(currx + 1, n) === empty) {
+                            queuex.push(currx + 1)
+                            queuey.push(n)
+                        }
+                    }
                 }
             }
         }
     }
 
-    private async renderLayer(layerIndices:Position) {
-        const layer = await this.getLayer(layerIndices)
-
-        if (!layer) {
-            return
-        }
-
+    private placeLayerGrid(layer: OffscreenCanvas) {
         const context = layer.getContext('2d')
 
         if (!context) {
@@ -122,7 +181,6 @@ export class RenderController {
             context.lineTo(layer.width, targetY)
             context.stroke()
         }
-        // TODO: implement layer render logic
     }
 
     private async getLayerFromCache(indices:Position) {
@@ -177,8 +235,10 @@ export class RenderController {
             * > - right side of window
             *
             * */
-            const maxHorizontalVisibleLayers = Math.ceil(this.viewPortSize.width / this.layerSize.width) + 1
-            const maxVerticalVisibleLayers = Math.ceil(this.viewPortSize.height / this.layerSize.height) + 1
+            // const maxHorizontalVisibleLayers = Math.ceil(this.viewPortSize.width / this.layerSize.width) + 1
+            // const maxVerticalVisibleLayers = Math.ceil(this.viewPortSize.height / this.layerSize.height) + 1
+            const maxHorizontalVisibleLayers = 1
+            const maxVerticalVisibleLayers = 1
 
             for (let i = 0; i < maxHorizontalVisibleLayers; i++) {
                 for (let j = 0; j < maxVerticalVisibleLayers; j++) {
@@ -200,13 +260,6 @@ export class RenderController {
         }
     }
 
-    private convertCordsToRelative(coordinates:Position, layerIndices:Position): Position {
-        return {
-            x: coordinates.x - layerIndices.x * this.layerSize.width,
-            y: coordinates.y - layerIndices.y * this.layerSize.height,
-        }
-    }
-
     private fieldStyle: CanvasStyle = {
         backgroundColor: 'grey',
         borderColor: 'black',
@@ -220,10 +273,9 @@ export class RenderController {
     private maxVisibleCells: Position = { x: 0, y: 0 }
     private maxVisibleLayers: Position = { x: 0, y: 0 }
     private layerGetter: LayerGetter | null = null
-    private layerCache: Map<string, OffscreenCanvas|undefined> = new Map<string, OffscreenCanvas|undefined>()
+    private layerCache: Map<string, OffscreenCanvas | undefined> = new Map()
     private lasScrollPosition: Position | undefined
     private viewPortSize: Size | undefined
-    private getLayerBuffer: ((layerIndices: Position) => void) | undefined
 }
 
 const renderController = new RenderController()

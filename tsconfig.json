@@ -11,7 +11,6 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
@@ -19,7 +18,8 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "isolatedModules": true
+    "isolatedModules": true,
+    "strict": true
   },
   "include": [
     "src"
