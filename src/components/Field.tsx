@@ -1,30 +1,36 @@
 import React from 'react'
 import { FixedSizeGrid as Grid, GridChildComponentProps } from 'react-window'
-import { MinesController } from '../MinesContex'
+import { MinesController } from '../MinesController'
 import { Cell } from './Cell'
 
 interface IFieldProps {
     width: number
     height: number
+    overscan: number
+    totalMines: number
 }
 
 export const Field: React.FC<IFieldProps> = (props) => {
-    const { width, height } = props
+    const { width, height, totalMines, overscan } = props
+
     const minesController = new MinesController(
         { width, height },
         new Uint8Array(new ArrayBuffer(width * height)),
-        100000
+        totalMines,
+        overscan,
     )
 
     return (
         <Grid
+            overscanColumnCount={overscan}
+            overscanRowCount={overscan}
             columnCount={width}
             rowCount={height}
             columnWidth={40}
             rowHeight={40}
             height={700}
             width={700}
-            onItemsRendered={minesController.updateVisibleGridState}
+            onItemsRendered={minesController.updateVisibleGridCellsState}
             onScroll={minesController.handleScroll}
         >
             {

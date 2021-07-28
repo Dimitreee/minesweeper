@@ -2,21 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ef7671df-17f4-4894-95ac-f720ef826324" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/MinesContex.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/Cell.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/MinesController.spec.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/MinesController.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/MinesContex.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Cell.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Cell.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/Field.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Field.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/Canvas.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/Cell.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/FieldController.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/LayerController.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/workers/MinesController.worker.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/workers/RenderController.worker.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/workers/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,6 +48,7 @@
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="nodejs.jest.jest_package" value="$PROJECT_DIR$/node_modules/react-scripts" />
     <property name="nodejs_package_manager_path" value="yarn" />
     <property name="ts.external.directory.path" value="$PROJECT_DIR$/node_modules/typescript/lib" />
     <property name="vue.rearranger.settings.migration" value="true" />
@@ -64,6 +57,57 @@
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src" />
     </key>
+  </component>
+  <component name="RunManager" selected="Jest.MinesController.should correctly fill the grid with flood fill">
+    <configuration name="MinesController.Should correctly place the mines" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <node-options value="" />
+      <jest-package value="$PROJECT_DIR$/node_modules/react-scripts" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/src/MinesController.spec.ts" />
+      <test-names>
+        <test-name value="MinesController" />
+        <test-name value="Should correctly place the mines" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="MinesController.should correctly fill the grid with flood fill" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <node-options value="" />
+      <jest-package value="$PROJECT_DIR$/node_modules/react-scripts" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/src/MinesController.spec.ts" />
+      <test-names>
+        <test-name value="MinesController" />
+        <test-name value="should correctly fill the grid with flood fill" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="MinesController.should correctly mark the cell" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <node-options value="" />
+      <jest-package value="$PROJECT_DIR$/node_modules/react-scripts" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs />
+      <scope-kind value="TEST" />
+      <test-file value="$PROJECT_DIR$/src/MinesController.spec.ts" />
+      <test-names>
+        <test-name value="MinesController" />
+        <test-name value="should correctly mark the cell" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Jest.MinesController.should correctly fill the grid with flood fill" />
+        <item itemvalue="Jest.MinesController.should correctly mark the cell" />
+        <item itemvalue="Jest.MinesController.Should correctly place the mines" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -83,7 +127,10 @@
       <workItem from="1627383425622" duration="4507000" />
       <workItem from="1627390450160" duration="2607000" />
       <workItem from="1627398308509" duration="3942000" />
-      <workItem from="1627406739786" duration="11602000" />
+      <workItem from="1627406739786" duration="11979000" />
+      <workItem from="1627454650945" duration="41000" />
+      <workItem from="1627474238842" duration="2660000" />
+      <workItem from="1627478672727" duration="6342000" />
     </task>
     <task id="LOCAL-00001" summary="env: initial commit">
       <created>1625973122646</created>
